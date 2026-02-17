@@ -1,4 +1,5 @@
 streamlit
-openai
-pillow
-requests
+transformers
+torch
+pandas
+altair
