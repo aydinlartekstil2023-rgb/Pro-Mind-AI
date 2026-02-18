@@ -39,15 +39,18 @@ with col1:
 if generate_btn:
     if entry:
         with st.spinner("Analiz ediliyor..."):
-            # Modelden gelen veriyi al
+            # Modelden gelen ham veriyi al
             raw_results = classifier(entry)[0]
             
-            # HATAYI ÇÖZEN YENİ VERİ YAPISI:
-            # results listesini doğrudan DataFrame'e dönüştürüyoruz
-            df = pd.DataFrame.from_records(raw_results)
+            # --- HATAYI KESİN ÇÖZEN YENİ MANTIK ---
+            # Veriyi manuel olarak listelere ayırıp DataFrame oluşturuyoruz
+            labels = [res['label'] for res in raw_results]
+            scores = [res['score'] for res in raw_results]
             
-            # Sütun isimlerini kontrol et ve değiştir
-            df.columns = ['Duygu', 'Skor']
+            df = pd.DataFrame({
+                'Duygu': labels,
+                'Skor': scores
+            })
             
             # Etiketleri Türkçeleştir
             label_map = {"positive": "Mutlu", "neutral": "Nötr", "negative": "Stresli"}
@@ -61,7 +64,10 @@ if generate_btn:
                 # Grafik oluşturma
                 chart = alt.Chart(df).mark_arc(innerRadius=50).encode(
                     theta=alt.Theta(field="Skor", type="quantitative"),
-                    color=alt.Color(field="Duygu", type="nominal", scale=alt.Scale(domain=['Mutlu', 'Nötr', 'Stresli'], range=['#2ecc71', '#3498db', '#e74c3c'])),
+                    color=alt.Color(field="Duygu", type="nominal", scale=alt.Scale(
+                        domain=['Mutlu', 'Nötr', 'Stresli'], 
+                        range=['#2ecc71', '#3498db', '#e74c3c']
+                    )),
                 ).properties(height=300)
                 st.altair_chart(chart, use_container_width=True)
 
