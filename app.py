@@ -14,13 +14,11 @@ st.set_page_config(page_title="Pro-Mind AI: Akıllı Mentor", page_icon="🧠", 
 # --- GEMINI KONFİGÜRASYONU ---
 def get_gemini_response(user_text, sentiment):
     try:
-        # Secrets'tan anahtarı çek
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
         
-        # Hata veren model ismini en güncel ve geniş destekli haliyle değiştiriyoruz
-        # 'gemini-1.5-flash-latest' veya 'gemini-pro' genellikle en stabil olanlardır
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # Hata ihtimalini sıfıra indirmek için 'latest' takısını ekledik
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
         
         prompt = f"""
         Bir psikolojik danışman ve mentor rolündesin. 
@@ -32,13 +30,13 @@ def get_gemini_response(user_text, sentiment):
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        # Alternatif model denemesi (Eğer flash hala 404 verirse pro sürümünü dene)
+        # Eğer flash-latest da hata verirse, klasik gemini-pro'ya dön
         try:
             model = genai.GenerativeModel('gemini-pro')
             response = model.generate_content(prompt)
             return response.text
-        except:
-            return f"Mentor şu an meşgul, ama duyguların bizim için değerli. Teknik hata: {str(e)}"
+        except Exception as inner_e:
+            return f"Mentor şu an meşgul, ama duyguların değerli. (Teknik Detay: {str(inner_e)})"
 
 # --- MODELLER ---
 @st.cache_resource
