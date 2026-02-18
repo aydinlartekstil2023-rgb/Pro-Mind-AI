@@ -13,7 +13,6 @@ st.set_page_config(page_title="Pro-Mind AI: Kurumsal & Terapi Destek", page_icon
 # --- MODEL YÜKLEME ---
 @st.cache_resource
 def load_analysis_model():
-    # Çok dilli duygu analiz modeli
     return pipeline("text-classification", model="lxyuan/distilbert-base-multilingual-cased-sentiments-student", return_all_scores=True)
 
 classifier = load_analysis_model()
@@ -39,29 +38,34 @@ with col1:
 if generate_btn:
     if entry:
         with st.spinner("Analiz ediliyor..."):
-            # Modelden gelen ham veriyi al
-            raw_results = classifier(entry)[0]
+            # Modelden gelen veriyi al
+            prediction = classifier(entry)
             
-            # --- HATAYI KESİN ÇÖZEN YENİ MANTIK ---
-            # Veriyi manuel olarak listelere ayırıp DataFrame oluşturuyoruz
-            labels = [res['label'] for res in raw_results]
-            scores = [res['score'] for res in raw_results]
+            # --- HATA ÖNLEYİCİ VERİ AYIKLAMA ---
+            # Veri yapısı ne olursa olsun (liste içinde liste veya doğrudan liste) temizliyoruz
+            if isinstance(prediction[0], list):
+                raw_results = prediction[0]
+            else:
+                raw_results = prediction
             
-            df = pd.DataFrame({
-                'Duygu': labels,
-                'Skor': scores
-            })
+            # Veriyi güvenli bir şekilde listelere çekiyoruz
+            data_list = []
+            for res in raw_results:
+                label = res.get('label', 'unknown')
+                score = res.get('score', 0.0)
+                data_list.append({"Duygu": label, "Skor": score})
+            
+            df = pd.DataFrame(data_list)
             
             # Etiketleri Türkçeleştir
             label_map = {"positive": "Mutlu", "neutral": "Nötr", "negative": "Stresli"}
-            df['Duygu'] = df['Duygu'].map(label_map)
+            df['Duygu'] = df['Duygu'].map(label_map).fillna(df['Duygu'])
             
             # En yüksek skorlu duyguyu bul
             top_sentiment = df.sort_values(by="Skor", ascending=False).iloc[0]['Duygu']
 
             with col2:
                 st.markdown("### 📊 Ruh Hali Analizi")
-                # Grafik oluşturma
                 chart = alt.Chart(df).mark_arc(innerRadius=50).encode(
                     theta=alt.Theta(field="Skor", type="quantitative"),
                     color=alt.Color(field="Duygu", type="nominal", scale=alt.Scale(
@@ -76,20 +80,19 @@ if generate_btn:
             
             rec_col1, rec_col2 = st.columns(2)
             
-            if top_sentiment == "Stresli":
+            # Öneri mantığını en baskın duyguya göre çalıştır
+            if "Stresli" in top_sentiment:
                 with rec_col1:
                     st.warning("Stresli görünüyorsunuz. Bu müzik size iyi gelebilir:")
                     st.video("https://www.youtube.com/watch?v=lFcSrYw-ARY")
                 with rec_col2:
                     st.info("💡 **Terapist Notu:** Kısa bir yürüyüş zihninizi boşaltmanıza yardımcı olabilir.")
-            
-            elif top_sentiment == "Mutlu":
+            elif "Mutlu" in top_sentiment:
                 with rec_col1:
                     st.success("Harika bir gün! Bu enerjiyi kutlayalım:")
                     st.video("https://www.youtube.com/watch?v=ZbZSe6N_BXs")
                 with rec_col2:
                     st.info("💡 **İK Notu:** Bu pozitif enerjiyi çalışma arkadaşlarınızla paylaşın!")
-            
             else:
                 with rec_col1:
                     st.info("Sakin ve dengeli bir gün. Odaklanmak için:")
