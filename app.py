@@ -4,7 +4,7 @@ import pandas as pd
 import altair as alt
 import os
 
-# TensorFlow ve Protobuf hatalarını engellemek için
+# Sistem ayarları
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
 # --- SAYFA AYARLARI ---
@@ -40,14 +40,14 @@ if generate_btn:
     if entry:
         with st.spinner("Analiz ediliyor..."):
             # Modelden gelen veriyi al
-            results = classifier(entry)[0]
+            raw_results = classifier(entry)[0]
             
-            # HATAYI ÇÖZEN KISIM: Veriyi listeye zorlayıp index ekliyoruz
-            df = pd.DataFrame(results) 
+            # HATAYI ÇÖZEN YENİ VERİ YAPISI:
+            # results listesini doğrudan DataFrame'e dönüştürüyoruz
+            df = pd.DataFrame.from_records(raw_results)
             
-            # Eğer DataFrame hala hata verirse garantiye alalım
-            if 'label' in df.columns and 'score' in df.columns:
-                df.columns = ['Duygu', 'Skor']
+            # Sütun isimlerini kontrol et ve değiştir
+            df.columns = ['Duygu', 'Skor']
             
             # Etiketleri Türkçeleştir
             label_map = {"positive": "Mutlu", "neutral": "Nötr", "negative": "Stresli"}
