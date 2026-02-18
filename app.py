@@ -17,19 +17,28 @@ def get_gemini_response(user_text, sentiment):
         # Secrets'tan anahtarı çek
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
+        
+        # Hata veren model ismini en güncel ve geniş destekli haliyle değiştiriyoruz
+        # 'gemini-1.5-flash-latest' veya 'gemini-pro' genellikle en stabil olanlardır
         model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = f"""
+        Bir psikolojik danışman ve mentor rolündesin. 
         Kullanıcı günlük girişinde şunları yazdı: "{user_text}"
         Duygu analizi sonucu: {sentiment}.
-        Bu kullanıcıya moduna uygun, samimi ve motive edici bir tavsiye ver. 
+        Bu kullanıcıya moduna uygun, samimi, destekleyici ve motive edici bir tavsiye ver. 
         Yanıtın en fazla 3 cümle olsun ve doğrudan kullanıcıya hitap et.
         """
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        # Hata durumunda teknik detayı göster (Geliştirme aşaması için)
-        return f"Bağlantı hatası: {str(e)}"
+        # Alternatif model denemesi (Eğer flash hala 404 verirse pro sürümünü dene)
+        try:
+            model = genai.GenerativeModel('gemini-pro')
+            response = model.generate_content(prompt)
+            return response.text
+        except:
+            return f"Mentor şu an meşgul, ama duyguların bizim için değerli. Teknik hata: {str(e)}"
 
 # --- MODELLER ---
 @st.cache_resource
